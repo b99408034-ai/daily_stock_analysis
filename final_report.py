@@ -1,31 +1,17 @@
 import os
-import requests
-from bs4 import BeautifulSoup
 from google import genai
 import twstock
+import requests
 
-# 初始化
+# 1. 初始化
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# 1. 抓取籌碼資料 (三大法人)
-majors = twstock.majors()
-# 取前五名買超個股作為數據分析參考
-top_buys = majors[:5] 
-major_data = f"三大法人買超前五: {top_buys}"
-
-# 2. 抓取新聞標題 (以雅虎奇摩股市為例)
-def get_stock_news():
-    url = "https://tw.stock.yahoo.com/news/category/headline"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    news_titles = [item.text for item in soup.find_all('h3')[:5]] # 取前五則頭條
-    return "\n".join(news_titles)
-
-news_data = get_stock_news()
-
-# 3. 整合所有數據
+# 2. 獲取大盤數據
 index_data = twstock.realtime.get('0000')
-market_summary = f"大盤指數: {index_data['realtime']['latest_trade_price']}, {major_data}, 最新頭條: {news_data}"
+current_index = index_data['realtime']['latest_trade_price']
+data = f"大盤指數: {current_index}, 最高: {index_data['realtime']['high']}, 最低: {index_data['realtime']['low']}"
 
 # 4. 進階專業經理人 Prompt
 prompt = f"""
