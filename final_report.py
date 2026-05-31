@@ -8,10 +8,17 @@ client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# 2. 獲取大盤數據
-index_data = twstock.realtime.get('0000')
-current_index = index_data['realtime']['latest_trade_price']
-data = f"大盤指數: {current_index}, 最高: {index_data['realtime']['high']}, 最低: {index_data['realtime']['low']}"
+# 2. 獲取大盤數據 (加入防呆)
+try:
+    index_data = twstock.realtime.get('0000')
+    if 'realtime' in index_data:
+        current_index = index_data['realtime']['latest_trade_price']
+        data = f"大盤指數: {current_index}, 最高: {index_data['realtime']['high']}, 最低: {index_data['realtime']['low']}"
+    else:
+        # 如果是假日或非交易時段，給予一個備用文字
+        data = "目前非交易時段，無法取得最新即時指數。"
+except Exception as e:
+    data = "數據獲取發生異常，請參考過去盤勢。"
 
 # 4. 進階專業經理人 Prompt
 prompt = f"""
@@ -28,14 +35,13 @@ prompt = f"""
 """
 
 # 5. AI 生成報告
-response = client.models.generate_content(
-    model='gemini-3.5-flash',
-    contents=prompt
-)
-
-# 6. 發送至 Telegram
-url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-payload = {"chat_id": CHAT_ID, "text": response.text}
-res = requests.post(url, json=payload)
-
-print(f"Telegram 回應狀態碼: {res.status_code}")
+try:
+    response = client.models.generate_content(
+        model='gemini-3.5-flash',
+        contents=prompt
+    )
+    payload = {"chat_id": CHAT_ID, "text": response.text}
+    requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json=payload)
+    print("報告已發送！")
+except Exception as e:
+    print(f"發送失敗: {e}")
