@@ -1,4 +1,4 @@
-name: 每日股票報告
+name: 每日台股股票報告
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
   schedule:
     # 每天早上 9:30 (台灣時間) 自動執行
     - cron: '30 1 * * *'
+      workflow_dispatch:
 
 jobs:
   run-report:
