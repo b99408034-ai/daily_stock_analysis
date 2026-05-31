@@ -44,7 +44,7 @@ jobs:
       - name: 设置 Python 环境
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.14'
           cache: 'pip'
       
       - name: 安装依赖
@@ -55,7 +55,10 @@ jobs:
       - name: 创建必要目录
         run: |
           mkdir -p data logs reports
-      
+          
+      - name: Install dependencies
+        run: pip install twstock google-genai requests
+        
       - name: 执行股票分析
         env:
           # ==========================================
