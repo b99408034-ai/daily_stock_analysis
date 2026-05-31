@@ -14,8 +14,8 @@ data = f"台積電近五日收盤: {stock.price[-5:]}"
 
 # 3. AI 生成報告
 response = client.models.generate_content(
-    model='gemini-3.5-flash',
-    contents=f"請分析以下台股數據並給出專業建議: {data}"
+    model='gemini-3.1-flash-lite',
+    contents=f"請分析以下台股目前大盤數據並給出專業建議: {data}"
 )
 
 # 4. 發送至 Telegram
