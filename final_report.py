@@ -2,6 +2,7 @@ import os
 from google import genai
 import twstock
 import requests
+import json
 
 # 1. 初始化
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
@@ -9,21 +10,36 @@ BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 # 2. 獲取大盤數據 (加入防呆)
-try:
-    index_data = twstock.realtime.get('0000')
-    if 'realtime' in index_data:
-        current_index = index_data['realtime']['latest_trade_price']
-        data = f"大盤指數: {current_index}, 最高: {index_data['realtime']['high']}, 最低: {index_data['realtime']['low']}"
-    else:
-        # 如果是假日或非交易時段，給予一個備用文字
-        data = "目前非交易時段，無法取得最新即時指數。"
-except Exception as e:
-    data = "數據獲取發生異常，請參考過去盤勢。"
+
+def get_market_data():
+    # 優先嘗試抓取即時數據
+    live_url = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_0000.tw"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    try:
+        res = requests.get(live_url, headers=headers)
+        data = res.json()
+        
+        # 檢查是否有即時成交價 (z)，且不為 "-"
+        if 'msgArray' in data and data['msgArray'][0].get('z') != "-":
+            return f"盤中即時指數: {data['msgArray'][0]['z']}"
+    except:
+        pass
+
+    # 若抓不到即時數據，切換抓取收盤指數
+    close_url = "https://www.twse.com.tw/rwd/zh/TAIEX/MI_5MINS_INDEX?response=json"
+    try:
+        res = requests.get(close_url, headers=headers)
+        data = res.json()
+        close_value = data['data'][-1][1]
+        return f"最近收盤指數: {close_value}"
+    except:
+        return "暫時無法取得大盤數據"
 
 # 4. 進階專業經理人 Prompt
 prompt = f"""
 你現在是一位擁有 20 年經驗的台股專業投資經理人，而我手上有一筆500萬信貸資金，利率2.4%，七年期，預計分批買入大盤，目標標的包含00403A, 0050, 009816, 00981A。請根據以下大盤數據進行深度分析：
-數據資料：{data}
+數據資料：{get_market_index()}
 
 請依序完成以下任務：
 1. 【數據結構化分析】：針對目前或是台股收盤大盤的指數位置、當日波動區間（高低點）進行客觀的價量解讀。
