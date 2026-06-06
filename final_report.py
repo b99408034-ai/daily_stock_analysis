@@ -1,6 +1,5 @@
 import os
 from google import genai
-import twstock
 import requests
 import json
 
@@ -9,8 +8,7 @@ client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# 2. 獲取大盤數據 (加入防呆)
-
+# 2. 獲取大盤數據函式
 def get_market_data():
     # 優先嘗試抓取即時數據
     live_url = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_0000.tw"
@@ -21,7 +19,7 @@ def get_market_data():
         data = res.json()
         
         # 檢查是否有即時成交價 (z)，且不為 "-"
-        if 'msgArray' in data and data['msgArray'][0].get('z') != "-":
+        if 'msgArray' in data and len(data['msgArray']) > 0 and data['msgArray'][0].get('z') != "-":
             return f"盤中即時指數: {data['msgArray'][0]['z']}"
     except:
         pass
@@ -36,10 +34,13 @@ def get_market_data():
     except:
         return "暫時無法取得大盤數據"
 
-# 4. 進階專業經理人 Prompt
+# 3. 呼叫函式取得數據
+market_info = get_market_data()
+
+# 4. 專業經理人 Prompt
 prompt = f"""
 你現在是一位擁有 20 年經驗的台股專業投資經理人，而我手上有一筆500萬信貸資金，利率2.4%，七年期，預計分批買入大盤，目標標的包含00403A, 0050, 009816, 00981A。請根據以下大盤數據進行深度分析：
-數據資料：{get_market_index()}
+數據資料：{market_info}
 
 請依序完成以下任務：
 1. 【數據結構化分析】：針對目前或是台股收盤大盤的指數位置、當日波動區間（高低點）進行客觀的價量解讀。
@@ -50,7 +51,7 @@ prompt = f"""
 要求：語氣需專業、客觀，請以「建議策略」作為結尾。
 """
 
-# 5. AI 生成報告
+# 5. AI 生成報告並發送
 try:
     response = client.models.generate_content(
         model='gemini-3.5-flash',
@@ -61,7 +62,6 @@ try:
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     res = requests.post(url, json=payload)
     
-    # 這裡加入偵錯檢查
     if res.status_code == 200:
         print("報告成功發送至 Telegram！")
     else:
