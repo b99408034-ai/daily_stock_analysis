@@ -37,7 +37,7 @@ prompt = f"""
 # 5. AI 生成報告
 try:
     response = client.models.generate_content(
-        model='gemini-3.5-flash',
+        model='gemini-2.0-flash',
         contents=prompt
     )
     payload = {"chat_id": CHAT_ID, "text": response.text}
