@@ -40,8 +40,17 @@ try:
         model='gemini-2.0-flash',
         contents=prompt
     )
+    
     payload = {"chat_id": CHAT_ID, "text": response.text}
-    requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json=payload)
-    print("報告已發送！")
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    res = requests.post(url, json=payload)
+    
+    # 這裡加入偵錯檢查
+    if res.status_code == 200:
+        print("報告成功發送至 Telegram！")
+    else:
+        print(f"發送失敗！狀態碼: {res.status_code}")
+        print(f"Telegram 回應內容: {res.text}")
+
 except Exception as e:
-    print(f"發送失敗: {e}")
+    print(f"程式執行異常: {e}")
